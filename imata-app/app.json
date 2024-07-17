@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "iMata",
+    "slug": "imata",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon-imata.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/images/splash-imata.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "03649def-09c2-4422-adb2-0051e89f3d5f"
+      }
+    },
+    "owner": "andypmw",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/03649def-09c2-4422-adb2-0051e89f3d5f"
+    }
+  }
+}
