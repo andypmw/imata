@@ -2,6 +2,8 @@
  * iMata ESP32-CAM Device Code
  */
 
+#include <vector>
+#include <algorithm>
 #include "esp_camera.h"
 #include "FS.h"
 #include "SD_MMC.h"
@@ -287,8 +289,9 @@ void saveConfigFile()
 // List all folders on the SD card
 void handleGetSessions(AsyncWebServerRequest *request)
 {
+    std::vector<String> directories;
+
     String path = "/";
-    String output = "[";
     File root = SD_MMC.open(path);
     if (!root)
     {
@@ -300,13 +303,31 @@ void handleGetSessions(AsyncWebServerRequest *request)
     {
         if (file.isDirectory())
         {
-            if (output != "[")
-                output += ',';
-            output += '"' + String(file.name()) + '"';
+            String dirName = String(file.name());
+
+            if (dirName.indexOf("iMata-capture") != -1)
+            {
+                directories.push_back(dirName);
+            }
         }
         file = root.openNextFile();
     }
-    output += "]";
+
+    // Reverse the order of directories
+    std::sort(directories.begin(), directories.end());
+
+    // Create a JSON array
+    DynamicJsonDocument doc(1024);
+    JsonArray jsonArray = doc.to<JsonArray>();
+    for (const auto &dir : directories)
+    {
+        jsonArray.add(dir);
+    }
+
+    // Convert JSON array to string
+    String output;
+    serializeJson(jsonArray, output);
+
     request->send(200, "application/json", output);
 }
 
