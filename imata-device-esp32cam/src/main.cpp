@@ -35,6 +35,9 @@
 #define HREF_GPIO_NUM 23
 #define PCLK_GPIO_NUM 22
 
+// Another pin definition
+#define FLASH_LED_GPIO_NUM 4
+
 // Interval between photo captures in seconds.
 // Can be overridden by the configuration JSON file and/or through HTTP REST API.
 int CAPTURE_INTERVAL = 5;
@@ -134,18 +137,26 @@ String generateRandomFolderName()
 // Function to capture and save a photo
 void capturePhoto(String targetFullPath)
 {
+    // Turn on flash LED
+    digitalWrite(FLASH_LED_GPIO_NUM, HIGH);
+
     File photoFile = SD_MMC.open(targetFullPath, FILE_WRITE);
     camera_fb_t *fb = NULL;
     // Take a photo and save it to SD card
     fb = esp_camera_fb_get();
     if (!fb)
     {
+        digitalWrite(FLASH_LED_GPIO_NUM, LOW);
         Serial.println("Camera capture failed");
         return;
     }
     photoFile.write(fb->buf, fb->len); // Write the image data to file
     photoFile.close();
     esp_camera_fb_return(fb);
+
+    // Turn off flash LED
+    digitalWrite(FLASH_LED_GPIO_NUM, LOW);
+
     Serial.println("Photo captured and saved: " + targetFullPath);
 }
 
@@ -563,6 +574,9 @@ void handleGetCaptureStatus(AsyncWebServerRequest *request)
 void setup()
 {
     Serial.begin(115200);
+
+    // Initialize the flash LED pin as an output
+    pinMode(FLASH_LED_GPIO_NUM, OUTPUT);
 
     // Power up the camera
     pinMode(PWDN_GPIO_NUM, OUTPUT);
