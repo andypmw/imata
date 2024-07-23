@@ -149,18 +149,36 @@ void capturePhoto(String targetFullPath)
     Serial.println("Photo captured and saved: " + targetFullPath);
 }
 
+void addFilenameToListFile(const String &listFileFullpath, const String &photoFilename)
+{
+    File theListFile = SD_MMC.open(listFileFullpath, FILE_APPEND);
+    if (theListFile)
+    {
+        theListFile.println(photoFilename);
+        theListFile.close();
+    }
+
+    Serial.println("Photo filename added into list file: " + photoFilename);
+}
+
 // Function to capture photos
 void capturePhotos()
 {
     if (captureInProgress)
     {
         // Build the full path for the target JPEG file
+        char photoFilename[21];
+        sprintf(photoFilename, "iMata-photo-%04d.jpg", photoCaptureCount);
+
         char photoFullPath[sessionFolderName.length() + 21];
-        sprintf(photoFullPath, "%s/iMata-photo-%04d.jpg", sessionFolderName.c_str(), photoCaptureCount);
+        sprintf(photoFullPath, "%s/%s", sessionFolderName.c_str(), photoFilename);
 
         // Capture the photo (assuming capturePhoto is a function that captures and saves the photo)
         capturePhoto(photoFullPath);
         photoCaptureCount++;
+
+        // Save the new photo filename into related list file
+        addFilenameToListFile(sessionFolderName + "/photo-list.txt", photoFilename);
 
         if (photoCaptureCount >= MAX_PHOTOS_PER_SESSION)
         { // Stop after capturing MAX_PHOTOS_PER_SESSION photos
@@ -352,14 +370,47 @@ void handleGetSession(AsyncWebServerRequest *request)
             request->send(404, "application/json", "{\"message\": \"Folder not found\"}");
             return;
         }
+
+        // First check is the file-list.txt file exists in the folder.
+        // If so, just return the list of photo name in the file.
+        File listFile = SD_MMC.open(path + "/photo-list.txt");
+        if (listFile)
+        {
+            Serial.println("photo-list.txt file exists");
+
+            while (listFile.available())
+            {
+                String photoFilename = listFile.readStringUntil('\n');
+                photoFilename.trim();
+
+                if (output != "[")
+                    output += ',';
+                output += '"' + photoFilename + '"';
+
+                Serial.println("photoFilename: " + photoFilename);
+            }
+            output += "]";
+
+            Serial.println("photo-list.txt file read done");
+            listFile.close();
+
+            request->send(200, "application/json", output);
+            return;
+        }
+
+        // If the file-list.txt file does not exist, list all jpg files in the folder
         File file = folder.openNextFile();
         while (file)
         {
             if (!file.isDirectory())
             {
-                if (output != "[")
-                    output += ',';
-                output += '"' + String(file.name()) + '"';
+                // Make sure the file has jpg extension before adding to the list
+                if (String(file.name()).endsWith(".jpg"))
+                {
+                    if (output != "[")
+                        output += ',';
+                    output += '"' + String(file.name()) + '"';
+                }
             }
             file = folder.openNextFile();
         }
@@ -493,6 +544,11 @@ void handleStartStopCapture(AsyncWebServerRequest *request)
         photoCaptureTicker.attach(CAPTURE_INTERVAL, capturePhotos);
         Serial.println("photoCaptureTicker attach");
         Serial.println("Photo capture started.");
+
+        // Create photo-list.txt empty file in the sessionFolderName
+        File listFile = SD_MMC.open(sessionFolderName + "/photo-list.txt", FILE_WRITE);
+        listFile.close();
+
         request->send(200, "application/json", "{\"message\": \"Photo capture started.\"}");
     }
 }
